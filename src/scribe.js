@@ -28,6 +28,36 @@ define([
 
   'use strict';
 
+  function listenForUserInput() {
+    /**
+     * This section replaces a simple observation of the input event.
+     * With Edge, Chrome, FF, this event triggers when either the user types
+     * something or a native command is executed which causes the content
+     * to change (i.e. `document.execCommand('bold')`).
+     * We can't wrap a transaction around these actions, so instead we run
+     * the transaction in this event.
+     * With IE, the input event does not trigger on contenteditable element
+     * that is why we have to simulate it.
+     */
+
+    var origExecCommand = document.execCommand;
+
+    document.execCommand = function() {
+      var result = origExecCommand.apply(document, arguments);
+      this.transactionManager.run();
+      return result;
+    }.bind(this);
+
+    var transactionRun = function() {
+      this.transactionManager.run();
+    }.bind(this);
+
+    // TODO: take into account the composable events for langs like Japanese.
+    this.el.addEventListener('keydown', transactionRun, false);
+    this.el.addEventListener('paste',   transactionRun, false);
+    this.el.addEventListener('cut',     transactionRun, false);
+  }
+
   function Scribe(el, options) {
     EventEmitter.call(this);
 
@@ -66,15 +96,7 @@ define([
 
     this.el.setAttribute('contenteditable', true);
 
-    this.el.addEventListener('input', function () {
-      /**
-       * This event triggers when either the user types something or a native
-       * command is executed which causes the content to change (i.e.
-       * `document.execCommand('bold')`). We can't wrap a transaction around
-       * these actions, so instead we run the transaction in this event.
-       */
-      this.transactionManager.run();
-    }.bind(this), false);
+    listenForUserInput.call(this);
 
     /**
      * Core Plugins
