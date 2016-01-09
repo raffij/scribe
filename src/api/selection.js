@@ -52,6 +52,36 @@ define(function () {
       }
     }
 
+    // With MS Edge, ranges that will be converted to selection require
+    // to start or end on a text node otherwise when normalizing the text nodes
+    // in the selection it won't be correct.
+
+    function setRangeStart(range, marker) {
+      var prevSibling = marker.previousSibling;
+      var nextSibling = marker.nextSibling;
+
+      if (prevSibling && prevSibling.nodeType === Node.TEXT_NODE) {
+        range.setStart(prevSibling, prevSibling.data.length);
+      } else if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE) {
+        range.setStart(nextSibling, 0);
+      } else {
+        range.setStartBefore(marker);
+      }
+    }
+
+    function setRangeEnd(range, marker) {
+      var prevSibling = marker.previousSibling;
+      var nextSibling = marker.nextSibling;
+
+      if (prevSibling && prevSibling.nodeType === Node.TEXT_NODE) {
+        range.setEnd(prevSibling, prevSibling.data.length);
+      } else if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE) {
+        range.setEnd(nextSibling, 0);
+      } else {
+        range.setEndAfter(marker);
+      }
+    }
+
     /**
      * Wrapper for object holding currently selected text.
      */
@@ -161,10 +191,10 @@ define(function () {
 
       var newRange = document.createRange();
 
-      newRange.setStartBefore(markers[0]);
+      setRangeStart(newRange, markers[0]);
       // We always reset the end marker because otherwise it will just
       // use the current range’s end marker.
-      newRange.setEndAfter(markers.length >= 2 ? markers[1] : markers[0]);
+      setRangeEnd(newRange, markers.length >= 2 ? markers[1] : markers[0]);
 
       if (! keepMarkers) {
         this.removeMarkers();

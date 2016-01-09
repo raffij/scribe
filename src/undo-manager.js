@@ -6,7 +6,7 @@ define([
   function UndoManager(limit, undoScopeHost) {
     this._stack = Immutable.List();
     this._limit = limit;
-    this._fireEvent = typeof CustomEvent != 'undefined' && undoScopeHost && undoScopeHost.dispatchEvent;
+    this._fireEvent = undoScopeHost && undoScopeHost.dispatchEvent;
     this._ush = undoScopeHost;
 
     this.position = 0;
@@ -92,7 +92,7 @@ define([
         cancelable: false
       }));
     }
-  }
+  };
 
   return UndoManager;
 });
