@@ -27,7 +27,14 @@ define([
   }
 
   function isEmptyTextNode(node) {
-    return isText(node) && node.data === '';
+    var isEmpty = false;
+    try {
+      isEmpty = isText(node) && node.data === '';
+    }
+    catch(err) {
+      isEmpty = true;
+    }
+    return isEmpty;
   }
 
   function isFragment(node) {
