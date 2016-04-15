@@ -32,30 +32,33 @@ define([
     /**
      * This section replaces a simple observation of the input event.
      * With Edge, Chrome, FF, this event triggers when either the user types
-     * something or a native command is executed which causes the content
-     * to change (i.e. `document.execCommand('bold')`).
-     * We can't wrap a transaction around these actions, so instead we run
-     * the transaction in this event.
+     * something.
      * With IE, the input event does not trigger on contenteditable element
      * that is why we have to simulate it.
      */
 
-    var origExecCommand = document.execCommand;
+    var isComposing = false;
+    var self = this;
 
-    document.execCommand = function() {
-      var result = origExecCommand.apply(document, arguments);
-      this.transactionManager.run();
-      return result;
-    }.bind(this);
+    var handler = {
+      handleEvent: function(e) {
+        if (isComposing) return;
 
-    var transactionRun = function() {
-      this.transactionManager.run();
-    }.bind(this);
+        if (e.type === 'compositionstart') {
+           isComposing = true;
+           return;
+        } else if (e.type === 'compositionend') {
+           isComposing = false;
+           self.transactionManager.run();
+        } else {
+           self.transactionManager.run();
+        }
+      }
+    };
 
-    // TODO: take into account the composable events for langs like Japanese.
-    this.el.addEventListener('keydown', transactionRun, false);
-    this.el.addEventListener('paste',   transactionRun, false);
-    this.el.addEventListener('cut',     transactionRun, false);
+    ['compositionstart', 'compositionend', 'keydown', 'cut', 'paste'].forEach(function(e) {
+      this.el.addEventListener(e, handler, false);
+    }.bind(this));
   }
 
   function Scribe(el, options) {
@@ -287,9 +290,36 @@ define([
      * See http://jsbin.com/cayosada/3/edit for more
      **/
 
-    // TODO: error if the selection is not within the Scribe instance? Or
-    // focus the Scribe instance if it is not already focused?
-    this.getCommand('insertHTML').execute(this._htmlFormatterFactory.format(html));
+    html = this._htmlFormatterFactory.format(html);
+
+    // is IE11
+    if(Object.hasOwnProperty.call(window, "ActiveXObject") && !window.ActiveXObject) {
+
+      if (this.getTextContent().trim() === '') {
+        this.setHTML(html);
+        
+      } else {
+
+        var r = document.getSelection().getRangeAt(0);
+        var n = document.createElement("span");
+        var htmlContent = document.createElement("span");
+        htmlContent.innerHTML = html;
+        if (htmlContent.children.length === 1 && htmlContent.children[0].tagName === 'P') {
+          html = htmlContent.children[0].innerHTML;
+        }
+        r.surroundContents(n);
+        n.innerHTML = html;
+        r.collapse(false);
+
+        nodeHelpers.removeChromeArtifacts(this.el);
+      }
+
+    } else {
+
+      // TODO: error if the selection is not within the Scribe instance? Or
+      // focus the Scribe instance if it is not already focused?
+      this.getCommand('insertHTML').execute(html);
+    }
   };
 
   Scribe.prototype.isDebugModeEnabled = function () {
