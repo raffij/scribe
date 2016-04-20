@@ -301,18 +301,21 @@ define([
     // is IE11
     if(Object.hasOwnProperty.call(window, "ActiveXObject") && !window.ActiveXObject) {
 
+      var htmlContent = document.createElement("span");
+      htmlContent.innerHTML = html;
+      if (htmlContent.children.length === 1 && htmlContent.children[0].tagName === 'P') {
+        html = htmlContent.children[0].innerHTML;
+      }
+
       if (this.getTextContent().trim() === '') {
-        this.setHTML(html);
-        
+
+        this.setContent(html);
+
       } else {
 
         var r = document.getSelection().getRangeAt(0);
         var n = document.createElement("span");
-        var htmlContent = document.createElement("span");
-        htmlContent.innerHTML = html;
-        if (htmlContent.children.length === 1 && htmlContent.children[0].tagName === 'P') {
-          html = htmlContent.children[0].innerHTML;
-        }
+        
         r.surroundContents(n);
         n.innerHTML = html;
         r.collapse(false);
