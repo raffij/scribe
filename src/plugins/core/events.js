@@ -220,6 +220,9 @@ define([
           selection.placeMarkers();
 
           var bin = document.createElement('div');
+          bin.style.height = 0;
+          bin.style.opacity = 0;
+          bin.style.overflow = 'hidden';
           document.body.appendChild(bin);
           bin.setAttribute('contenteditable', true);
           bin.focus();
